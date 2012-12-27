@@ -28,8 +28,7 @@ int nb_line_<%=cid %> = 0;
  com.tableausoftware.DataExtract.Extract extract_<%=cid %> = new com.tableausoftware.DataExtract.Extract( <%=outputFile %> );
  com.tableausoftware.DataExtract.TableDefinition tableDef<%=cid %> = new com.tableausoftware.DataExtract.TableDefinition();
  
- // TODO: collation parameter
- tableDef<%=cid %>.setDefaultCollation( <%= defCollation %> );
+ tableDef<%=cid %>.setDefaultCollation( com.tableausoftware.DataExtract.Collation.<%= defCollation %> );
   
 <%
   IMetadataTable preMetadata = null;
@@ -39,8 +38,31 @@ int nb_line_<%=cid %> = 0;
   for (int i = 0; i < columns.size(); i++) 
   {
    IMetadataColumn column = columns.get(i);
-%> 
-	tableDef<%=cid %>.addColumn( <% column.getLabel()%>, JavaTypesManager.getJavaTypeFromId(<%= column.getTalendType() %>);
+   JavaType javaType = JavaTypesManager.getJavaTypeFromId(column.getTalendType());
+
+   if ( javaType == JavaTypesManager.STRING) {
+%>
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.CHAR_STRING);
+<%   } else if ( javaType == JavaTypesManager.DATE) { %>
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.DATETIME);
 <%
+   } else if ( javaType == JavaTypesManager.INTEGER) {
+%>
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.INTEGER);
+<%
+   } else if ( javaType == JavaTypesManager.DOUBLE || javaType == JavaTypesManager.FLOAT) {
+%>
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.DOUBLE);
+
+<% } else {  %>
+       System.out.println( "Unknown type:  <%= javaType.toString() %> ");
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.CHAR_STRING);
+<%
+   } // if javatype
+
   }
 %>
+
+com.tableausoftware.DataExtract.Table table<%=cid %> = extract_<%=cid %>.addTable("Extract", tableDef<%=cid %>);
+            
+com.tableausoftware.DataExtract.Row row<%=cid %> = new com.tableausoftware.DataExtract.Row(tableDef<%=cid %>);
