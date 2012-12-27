@@ -42,7 +42,7 @@ int nb_line_<%=cid %> = 0;
 
    if ( javaType == JavaTypesManager.STRING) {
 %>
-	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.CHAR_STRING);
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.UNICODE_STRING);
 <%   } else if ( javaType == JavaTypesManager.DATE) { %>
 	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.DATETIME);
 <%
@@ -56,7 +56,7 @@ int nb_line_<%=cid %> = 0;
 
 <% } else {  %>
        System.out.println( "Unknown type:  <%= javaType.toString() %> ");
-	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.CHAR_STRING);
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.UNICODE_STRING);
 <%
    } // if javatype
 

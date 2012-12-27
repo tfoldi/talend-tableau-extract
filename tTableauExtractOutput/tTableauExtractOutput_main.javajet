@@ -6,6 +6,8 @@
     org.talend.core.model.process.IConnection
     org.talend.core.model.process.INode
     org.talend.designer.codegen.config.CodeGeneratorArgument
+    org.talend.core.model.metadata.types.JavaTypesManager
+	org.talend.core.model.metadata.types.JavaType
     java.util.List
 	" 
 %>
@@ -19,17 +21,44 @@ preMetadata = node.getIncomingConnections().get(0).getMetadataTable();
 String inRowName = node.getIncomingConnections().get(0).getName(); 
 %> 
 
+java.util.Calendar cal_<%=cid %> = java.util.Calendar.getInstance();
+
 
 <% List<IMetadataColumn> columns = preMetadata.getListColumns();
 for (int i = 0; i < columns.size(); i++) 
 {
  IMetadataColumn column = columns.get(i);
+ JavaType javaType = JavaTypesManager.getJavaTypeFromId(column.getTalendType());
+
+ if ( javaType == JavaTypesManager.STRING) {
+%>	
+	   row<%=cid %>.setString( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
+<%   } else if ( javaType == JavaTypesManager.DATE) { %>
+	   cal_<%=cid %>.setTime(<%=inRowName %>.<%=column.getLabel()%>);
+	   row<%=cid %>.setDateTime( <%= i %>,
+					cal_<%=cid %>.get(java.util.Calendar.YEAR),
+                    cal_<%=cid %>.get(java.util.Calendar.MONTH) + 1,
+                    cal_<%=cid %>.get(java.util.Calendar.DAY_OF_MONTH),
+                    cal_<%=cid %>.get(java.util.Calendar.HOUR_OF_DAY), 
+                    cal_<%=cid %>.get(java.util.Calendar.MINUTE), 
+                    cal_<%=cid %>.get(java.util.Calendar.SECOND), 
+                    cal_<%=cid %>.get(java.util.Calendar.MILLISECOND) * 10 );
+<%
+   } else if ( javaType == JavaTypesManager.INTEGER) {
 %>
+	   row<%=cid %>.setInteger( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
+<%
+   } else if ( javaType == JavaTypesManager.DOUBLE || javaType == JavaTypesManager.FLOAT) {
+%>
+	   row<%=cid %>.setDouble( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
 
-//println("   <<%=column.getLabel() %>>"+<%=inRowName %>.<%=column.getLabel() %>+"</<%=column.getLabel() %>>");
-
-<% 
+<% } else {  %>
+	   row<%=cid %>.setString( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
+<%
+   } // if javatype
 }
 %>
+
+table<%=cid %>.insert( row<%=cid %> );
 
 nb_line_<%=cid %>++;
