@@ -19,7 +19,6 @@ INode node = (INode)codeGenArgument.getArgument();
 String cid = node.getUniqueName();
 String outputFile = ElementParameterParser.getValue(node, "__OUTPUTFILE__");
 String defCollation = ElementParameterParser.getValue(node, "__COLLATION__");
-String tableName = ElementParameterParser.getValue(node, "__TABLE_NAME__");
 
 %> 
 int nb_line_<%=cid %> = 0;
