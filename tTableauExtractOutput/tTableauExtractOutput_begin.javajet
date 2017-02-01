@@ -9,9 +9,9 @@
 		org.talend.designer.codegen.config.CodeGeneratorArgument
 		org.talend.core.model.metadata.types.JavaTypesManager
 		org.talend.core.model.metadata.types.JavaType
-		java.util.Calendar		
-        java.util.List  
-	" 
+		java.util.Calendar
+        java.util.List
+	"
 %>
 <%
 CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
@@ -21,8 +21,9 @@ String outputFile = ((String)ElementParameterParser.getValue(node, "__OUTPUTFILE
 String defCollation = ElementParameterParser.getValue(node, "__COLLATION__");
 String actionOnFile = ElementParameterParser.getValue(node, "__ACTION_ON_FILE__");
 
-%> 
+%>
 int nb_line_<%=cid %> = 0;
+boolean tdeOutputInitialized_<%=cid %> = false;
 
 <% if(actionOnFile.equalsIgnoreCase("OVERWRITE") ){  //Delete file before opening 
 	%>
@@ -32,14 +33,40 @@ int nb_line_<%=cid %> = 0;
 	} catch (Exception e) {
 		throw new Exception("File path not valid",e);
 	}
-<%}%>
+<%}
+boolean isDynamic = false;
+
+
+	List< ? extends IConnection> inputConns = node.getIncomingConnections();
+		for(IConnection conn : inputConns){
+			if (conn.getLineStyle().hasConnectionCategory(IConnectionCategory.DATA)) {
+				IMetadataTable justMetadata = conn.getMetadataTable();
+				//List<IMetadataColumn> justColumnList = justMetadata.getListColumns();
+				isDynamic = justMetadata.isDynamicSchema();
+				break;
+			}
+		}
+		if(isDynamic) {
+%>
+			//iso all the way
+	    	String DynamicDatePattern = "YYYY-MM-DD HH24:MI:SS";
+			routines.system.Dynamic dynamic_<%=cid%> =  new routines.system.Dynamic();
+			dynamic_<%=cid%>.setDbmsId("File");
+<%
+		}
+%>
 
  // TODO: exception handling
- com.tableausoftware.DataExtract.Extract extract_<%=cid %> = new com.tableausoftware.DataExtract.Extract( <%=outputFile %> );
- com.tableausoftware.DataExtract.TableDefinition tableDef<%=cid %> = new com.tableausoftware.DataExtract.TableDefinition();
- 
- tableDef<%=cid %>.setDefaultCollation( com.tableausoftware.DataExtract.Collation.<%= defCollation %> );
-  
+ com.tableausoftware.extract.Extract extract_<%=cid %> = new com.tableausoftware.extract.Extract( <%=outputFile %> );
+ com.tableausoftware.extract.TableDefinition tableDef<%=cid %> = new com.tableausoftware.extract.TableDefinition();
+
+ tableDef<%=cid %>.setDefaultCollation( com.tableausoftware.common.Collation.<%= defCollation %> );
+
+com.tableausoftware.extract.Table table<%=cid %> = null;
+
+<%
+		if(!isDynamic) {
+%>
 <%
   IMetadataTable preMetadata = null;
   if ((node.getIncomingConnections()!=null)&&(node.getIncomingConnections().size()>0))
@@ -50,36 +77,36 @@ int nb_line_<%=cid %> = 0;
    IMetadataColumn column = columns.get(i);
 
  if ( column.getTalendType().equalsIgnoreCase("id_BigDecimal") ) {
-	%>  
-	tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.DOUBLE);
+	%>
+	tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.common.Type.DOUBLE);
 <%
  } else {
    JavaType javaType = JavaTypesManager.getJavaTypeFromId(column.getTalendType());
 
    if ( javaType == JavaTypesManager.STRING) {
 %>
-	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.UNICODE_STRING);
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.common.Type.UNICODE_STRING);
 <%   } else if ( javaType == JavaTypesManager.DATE) { %>
-	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.DATETIME);
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.common.Type.DATETIME);
 <%
    } else if ( javaType == JavaTypesManager.INTEGER) {
 %>
-	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.INTEGER);
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.common.Type.INTEGER);
 <%
    } else if ( javaType == JavaTypesManager.DOUBLE || javaType == JavaTypesManager.FLOAT) {
 %>
-	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.DOUBLE);
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.common.Type.DOUBLE);
 
 <% } else {  %>
        System.out.println( "Unknown type:  <%= javaType.toString() %> ");
-	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.UNICODE_STRING);
+	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.common.Type.UNICODE_STRING);
 <%
    } // if javatype
-  }
- }
+  } //for
+ } //!isDynamic
 %>
 
-com.tableausoftware.DataExtract.Table table<%=cid %> = null;
+
 
 try {
 <% if(actionOnFile.equalsIgnoreCase("APPEND") ){  //Delete file before opening 
@@ -99,5 +126,9 @@ try {
 } catch (Exception e) {
 	throw new Exception("Failed to open/append TDE.",e);
 }
-            
-com.tableausoftware.DataExtract.Row row<%=cid %> = new com.tableausoftware.DataExtract.Row(tableDef<%=cid %>);
+
+com.tableausoftware.extract.Row row<%=cid %> = new com.tableausoftware.extract.Row(tableDef<%=cid %>);
+
+<%
+	} //if(!isDynamic) {
+%>

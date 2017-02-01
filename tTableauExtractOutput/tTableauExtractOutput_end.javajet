@@ -17,3 +17,5 @@
     String cid = node.getUniqueName();	
 %>
 globalMap.put("<%=cid %>_NB_LINE",nb_line_<%=cid %>);     
+
+extract_<%=cid %>.close();

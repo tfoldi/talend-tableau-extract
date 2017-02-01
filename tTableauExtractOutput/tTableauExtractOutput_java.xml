@@ -34,7 +34,9 @@
 	<CODEGENERATION>
 		<IMPORTS>
 			<IMPORT NAME="jna" MODULE="jna.jar" REQUIRED="true" />
-			<IMPORT NAME="dataextract" MODULE="dataextract.jar" REQUIRED="true" />
+			<IMPORT NAME="tableauextract" MODULE="tableauextract.jar" REQUIRED="true" />
+			<IMPORT NAME="tableauserver" MODULE="tableauserver.jar" REQUIRED="true" />
+			<IMPORT NAME="tableaucommon" MODULE="tableaucommon.jar" REQUIRED="true" />
 		</IMPORTS>
 	</CODEGENERATION>
 	<RETURNS>

@@ -1,76 +1,217 @@
-<%@ jet 
+<%@ jet
 	imports="
+    org.talend.core.model.process.ElementParameterParser
+    org.talend.core.model.metadata.IMetadataTable
     org.talend.core.model.metadata.IMetadataColumn
     org.talend.core.model.metadata.IMetadataTable
     org.talend.core.model.process.EConnectionType
     org.talend.core.model.process.IConnection
+    org.talend.core.model.process.IConnectionCategory
     org.talend.core.model.process.INode
     org.talend.designer.codegen.config.CodeGeneratorArgument
     org.talend.core.model.metadata.types.JavaTypesManager
-	org.talend.core.model.metadata.types.JavaType
+	  org.talend.core.model.metadata.types.JavaType
     java.util.List
-	" 
+	"
 %>
 <%
 CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 INode node = (INode)codeGenArgument.getArgument();
 String cid = node.getUniqueName();
 IMetadataTable preMetadata = null;
+
 if ((node.getIncomingConnections()!=null)&&(node.getIncomingConnections().size()>0))
 preMetadata = node.getIncomingConnections().get(0).getMetadataTable();
-String inRowName = node.getIncomingConnections().get(0).getName(); 
-%> 
+String inRowName = node.getIncomingConnections().get(0).getName();
+
+String actionOnFile = ElementParameterParser.getValue(node, "__ACTION_ON_FILE__");
+
+boolean isDynamic = false;
+
+
+    List< ? extends IConnection> inputConns = node.getIncomingConnections();
+        for(IConnection conn : inputConns){
+            if (conn.getLineStyle().hasConnectionCategory(IConnectionCategory.DATA)) {
+                IMetadataTable justMetadata = conn.getMetadataTable();
+                //List<IMetadataColumn> justColumnList = justMetadata.getListColumns();
+                isDynamic = justMetadata.isDynamicSchema();
+                break;
+            }
+        }
+%>
 
 java.util.Calendar cal_<%=cid %> = java.util.Calendar.getInstance();
 
 
-<% List<IMetadataColumn> columns = preMetadata.getListColumns();
-for (int i = 0; i < columns.size(); i++) 
+<%
+List<IMetadataColumn> columns ;
+        if(!isDynamic) {
+
+ columns = preMetadata.getListColumns();
+for (int i = 0; i < columns.size(); i++)
 {
  IMetadataColumn column = columns.get(i);
-
 %>
+ if( <%=inRowName %>.<%=column.getLabel()%>==null ) {
+    row<%=cid %>.setNull( <%= i %>);
+  } else {
 //<%=column.getTalendType()%>
 <%
  if ( column.getTalendType().equalsIgnoreCase("id_BigDecimal") ) {
-%>  
-    row<%=cid %>.setDouble( <%= i %>, <%=inRowName %>.<%=column.getLabel()%>==null?
-        0:Double.valueOf( <%=inRowName %>.<%=column.getLabel()%>.doubleValue() ) );
+%>
+    row<%=cid %>.setDouble( <%= i %>, Double.valueOf( <%=inRowName %>.<%=column.getLabel()%>.doubleValue() ) );
 //<%=column.getTalendType()%>
 <%
  } else {
  JavaType javaType = JavaTypesManager.getJavaTypeFromId(column.getTalendType());
 
  if ( javaType == JavaTypesManager.STRING) {
-%>	
-	   row<%=cid %>.setString( <%= i %>, 
-            <%=inRowName %>.<%=column.getLabel()%>==null?"":<%=inRowName %>.<%=column.getLabel()%> );
-<%   } else if ( javaType == JavaTypesManager.DATE) { %>
-	   cal_<%=cid %>.setTime(<%=inRowName %>.<%=column.getLabel()%>==null?
-            new java.util.Date(70, 01, 01, 00, 00, 00):<%=inRowName %>.<%=column.getLabel()%>);
+%>
+	     row<%=cid %>.setString( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
+<%
+   } else if ( javaType == JavaTypesManager.DATE) {
+%>
+	   cal_<%=cid %>.setTime(<%=inRowName %>.<%=column.getLabel()%>);
 	   row<%=cid %>.setDateTime( <%= i %>,
 					cal_<%=cid %>.get(java.util.Calendar.YEAR),
-                    cal_<%=cid %>.get(java.util.Calendar.MONTH) + 1,
-                    cal_<%=cid %>.get(java.util.Calendar.DAY_OF_MONTH),
-                    cal_<%=cid %>.get(java.util.Calendar.HOUR_OF_DAY), 
-                    cal_<%=cid %>.get(java.util.Calendar.MINUTE), 
-                    cal_<%=cid %>.get(java.util.Calendar.SECOND), 
-                    cal_<%=cid %>.get(java.util.Calendar.MILLISECOND) * 10 );
+          cal_<%=cid %>.get(java.util.Calendar.MONTH) + 1,
+          cal_<%=cid %>.get(java.util.Calendar.DAY_OF_MONTH),
+          cal_<%=cid %>.get(java.util.Calendar.HOUR_OF_DAY),
+          cal_<%=cid %>.get(java.util.Calendar.MINUTE),
+          cal_<%=cid %>.get(java.util.Calendar.SECOND),
+          cal_<%=cid %>.get(java.util.Calendar.MILLISECOND) * 10 );
 <%
    } else if ( javaType == JavaTypesManager.INTEGER) {
 %>
-	   row<%=cid %>.setInteger( <%= i %>, <%=inRowName %>.<%=column.getLabel()%>==null?0:<%=inRowName %>.<%=column.getLabel()%> );
+	   row<%=cid %>.setInteger( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
 <%
    } else if ( javaType == JavaTypesManager.DOUBLE || javaType == JavaTypesManager.FLOAT) {
 %>
-	   row<%=cid %>.setDouble( <%= i %>, <%=inRowName %>.<%=column.getLabel()%>==null?0:<%=inRowName %>.<%=column.getLabel()%> );
+	   row<%=cid %>.setDouble( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
 <% } else {  %>
-	   row<%=cid %>.setString( <%= i %>, <%=inRowName %>.<%=column.getLabel()%>==null?"":<%=inRowName %>.<%=column.getLabel()%> );
+	   row<%=cid %>.setString( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
 <%
    } // if javatype
-}
-}
+ }
 %>
+}
+<%
+} //for
+
+       } else { //isDynamic == true
+
+  if ((node.getIncomingConnections()!=null)&&(node.getIncomingConnections().size()>0))
+  preMetadata = node.getIncomingConnections().get(0).getMetadataTable();
+  columns = preMetadata.getListColumns();
+  IMetadataColumn dynamicColumn = columns.get(0);
+%>
+  Dynamic column<%= cid%> = <%=inRowName %>.<%= dynamicColumn.getLabel()%>;
+
+if (tdeOutputInitialized_<%=cid %> == false) {
+
+  //iterate on the columns
+  for (int i = 0; i < column<%= cid%>.getColumnCount(); i++) {
+    String colName = column<%= cid%>.getColumnMetadata(i).getDbName().replace("_"," ");
+    String colType = column<%= cid%>.getColumnMetadata(i).getType();
+
+
+    if ( colType.equalsIgnoreCase("id_BigDecimal") ) {
+          tableDef<%=cid %>.addColumn( colName ,com.tableausoftware.common.Type.DOUBLE);
+    } else if ( colType.equalsIgnoreCase("id_String") /*STRING*/) {
+          tableDef<%=cid %>.addColumn( colName ,com.tableausoftware.common.Type.UNICODE_STRING);
+    } else if ( colType.equalsIgnoreCase("id_Date") /*DATE*/) {
+          tableDef<%=cid %>.addColumn( colName ,com.tableausoftware.common.Type.DATETIME);
+    } else if ( colType.equalsIgnoreCase("id_Integer") /*INTEGER*/) {
+          tableDef<%=cid %>.addColumn( colName ,com.tableausoftware.common.Type.INTEGER);
+    } else if ( colType.equalsIgnoreCase("id_Double") /*DOUBLE*/ ) {
+          tableDef<%=cid %>.addColumn( colName ,com.tableausoftware.common.Type.DOUBLE);
+    } else if ( colType.equalsIgnoreCase("id_Long") /*DOUBLE*/ ) {
+          tableDef<%=cid %>.addColumn( colName ,com.tableausoftware.common.Type.DOUBLE);
+    } else if ( colType.equalsIgnoreCase("id_Float") /*DOUBLE*/ ) {
+          tableDef<%=cid %>.addColumn( colName ,com.tableausoftware.common.Type.DOUBLE);
+    } else {
+          tableDef<%=cid %>.addColumn( colName ,com.tableausoftware.common.Type.UNICODE_STRING);
+          throw new Exception("Unmapped type! Column: " + colName + " Type: " + colType.equalsIgnoreCase("")  );
+    } // if javatype
+
+
+  } //iterate on the columns
+
+
+  table<%=cid %> = null;
+
+try {
+<% if(actionOnFile.equalsIgnoreCase("APPEND") ){  //Delete file before opening 
+    %>
+
+        if (!extract_<%=cid %>.hasTable("Extract")) {
+                // Table does not exist; create it
+                table<%=cid %> = extract_<%=cid %>.addTable("Extract", tableDef<%=cid %>);
+            }
+            else {
+                // Open an existing table to add more rows
+                table<%=cid %> = extract_<%=cid %>.openTable("Extract");
+            }
+<%} else { %>
+    table<%=cid %> = extract_<%=cid %>.addTable("Extract", tableDef<%=cid %>);
+<%}%>
+} catch (Exception e) {
+    throw new Exception("Failed to open/append TDE.",e);
+}
+tdeOutputInitialized_<%=cid %> = true;
+} //tdeOutputIntialized
+
+
+//Now that we have the metadata created all we have to do is to populate the row.
+com.tableausoftware.extract.Row row<%=cid %> = new com.tableausoftware.extract.Row(tableDef<%=cid %>);
+
+//iterate on the columns
+for (int i = 0; i < column<%= cid%>.getColumnCount(); i++) {
+    String colName = column<%= cid%>.getColumnMetadata(i).getDbName().replace("_"," ");
+    String colType = column<%= cid%>.getColumnMetadata(i).getType();
+
+  if (column<%= cid%>.getColumnValue(i)==null) {
+       row<%=cid %>.setNull(i);
+  } else if ( colType.equalsIgnoreCase("id_BigDecimal") ) {
+    row<%=cid %>.setDouble(i, column<%= cid%>.getColumnValue(i)==null?
+        0: ((BigDecimal) column<%= cid%>.getColumnValue(i) ).doubleValue() );
+  } else if ( colType.equalsIgnoreCase("id_String") /*STRING*/) {
+       row<%=cid %>.setString(i,column<%= cid%>.getColumnValue(i).toString() );
+  } else if ( colType.equalsIgnoreCase("id_Date") /*DATE*/) {
+       cal_<%=cid %>.setTime( (Date)column<%= cid%>.getColumnValue(i));
+       if(cal_<%=cid %>.get(java.util.Calendar.YEAR) == 1 &&
+          cal_<%=cid %>.get(java.util.Calendar.MONTH) == 0 &&
+          cal_<%=cid %>.get(java.util.Calendar.DAY_OF_MONTH) == 1
+        ) {
+            row<%=cid %>.setNull(i);
+          } else {
+             row<%=cid %>.setDateTime(i,
+                    cal_<%=cid %>.get(java.util.Calendar.YEAR),
+                    cal_<%=cid %>.get(java.util.Calendar.MONTH) + 1,
+                    cal_<%=cid %>.get(java.util.Calendar.DAY_OF_MONTH),
+                    cal_<%=cid %>.get(java.util.Calendar.HOUR_OF_DAY),
+                    cal_<%=cid %>.get(java.util.Calendar.MINUTE),
+                    cal_<%=cid %>.get(java.util.Calendar.SECOND),
+                    cal_<%=cid %>.get(java.util.Calendar.MILLISECOND) * 10 );
+          }
+   } else if ( colType.equalsIgnoreCase("id_Integer") /*INTEGER*/) {
+       row<%=cid %>.setInteger(i, (Integer)column<%= cid%>.getColumnValue(i) );
+   } else if ( colType.equalsIgnoreCase("id_Double") /*DOUBLE*/ ) {
+       row<%=cid %>.setDouble(i, (Double)column<%= cid%>.getColumnValue(i) );
+   } else if ( colType.equalsIgnoreCase("id_Long") /*DOUBLE*/ ) {
+       row<%=cid %>.setDouble(i, (Long)column<%= cid%>.getColumnValue(i) );
+   } else if ( colType.equalsIgnoreCase("id_Float") /*DOUBLE*/ ) {
+       row<%=cid %>.setDouble(i, (Float)column<%= cid%>.getColumnValue(i) );
+   } else {
+       row<%=cid %>.setString(i, column<%= cid%>.getColumnValue(i).toString() );
+       throw new Exception("Unmapped type! Column: " + colName + " Type: " + colType.equalsIgnoreCase("")  );
+   } // if javatype
+}
+
+<%
+    } //if(isDynamic) {
+%>
+
 
 table<%=cid %>.insert( row<%=cid %> );
 
