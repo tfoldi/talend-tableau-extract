@@ -17,7 +17,7 @@ What else do I need?
 ======================
 
 Talend DI 5.4+ from www.talend.com
-Tableau 8 extract API from www.tableausoftware.com
+Tableau 10.x extract API from www.tableau.com
 Windows 64bit + Java 64bit
 
 
