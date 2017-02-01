@@ -28,13 +28,26 @@ java.util.Calendar cal_<%=cid %> = java.util.Calendar.getInstance();
 for (int i = 0; i < columns.size(); i++) 
 {
  IMetadataColumn column = columns.get(i);
+
+%>
+//<%=column.getTalendType()%>
+<%
+ if ( column.getTalendType().equalsIgnoreCase("id_BigDecimal") ) {
+%>  
+    row<%=cid %>.setDouble( <%= i %>, <%=inRowName %>.<%=column.getLabel()%>==null?
+        0:Double.valueOf( <%=inRowName %>.<%=column.getLabel()%>.doubleValue() ) );
+//<%=column.getTalendType()%>
+<%
+ } else {
  JavaType javaType = JavaTypesManager.getJavaTypeFromId(column.getTalendType());
 
  if ( javaType == JavaTypesManager.STRING) {
 %>	
-	   row<%=cid %>.setString( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
+	   row<%=cid %>.setString( <%= i %>, 
+            <%=inRowName %>.<%=column.getLabel()%>==null?"":<%=inRowName %>.<%=column.getLabel()%> );
 <%   } else if ( javaType == JavaTypesManager.DATE) { %>
-	   cal_<%=cid %>.setTime(<%=inRowName %>.<%=column.getLabel()%>);
+	   cal_<%=cid %>.setTime(<%=inRowName %>.<%=column.getLabel()%>==null?
+            new java.util.Date(70, 01, 01, 00, 00, 00):<%=inRowName %>.<%=column.getLabel()%>);
 	   row<%=cid %>.setDateTime( <%= i %>,
 					cal_<%=cid %>.get(java.util.Calendar.YEAR),
                     cal_<%=cid %>.get(java.util.Calendar.MONTH) + 1,
@@ -46,16 +59,16 @@ for (int i = 0; i < columns.size(); i++)
 <%
    } else if ( javaType == JavaTypesManager.INTEGER) {
 %>
-	   row<%=cid %>.setInteger( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
+	   row<%=cid %>.setInteger( <%= i %>, <%=inRowName %>.<%=column.getLabel()%>==null?0:<%=inRowName %>.<%=column.getLabel()%> );
 <%
    } else if ( javaType == JavaTypesManager.DOUBLE || javaType == JavaTypesManager.FLOAT) {
 %>
-	   row<%=cid %>.setDouble( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
-
+	   row<%=cid %>.setDouble( <%= i %>, <%=inRowName %>.<%=column.getLabel()%>==null?0:<%=inRowName %>.<%=column.getLabel()%> );
 <% } else {  %>
-	   row<%=cid %>.setString( <%= i %>, <%=inRowName %>.<%=column.getLabel()%> );
+	   row<%=cid %>.setString( <%= i %>, <%=inRowName %>.<%=column.getLabel()%>==null?"":<%=inRowName %>.<%=column.getLabel()%> );
 <%
    } // if javatype
+}
 }
 %>
 

@@ -16,7 +16,7 @@ from any kind of databases including mainframes, custom web services and so on w
 What else do I need?
 ======================
 
-Talend DI 4.0+ from www.talend.com
+Talend DI 5.4+ from www.talend.com
 Tableau 8 extract API from www.tableausoftware.com
 Windows 64bit + Java 64bit
 

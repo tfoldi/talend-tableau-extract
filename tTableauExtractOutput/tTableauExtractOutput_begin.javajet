@@ -17,11 +17,22 @@
 CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 INode node = (INode)codeGenArgument.getArgument();
 String cid = node.getUniqueName();
-String outputFile = ElementParameterParser.getValue(node, "__OUTPUTFILE__");
+String outputFile = ((String)ElementParameterParser.getValue(node, "__OUTPUTFILE__")).replace("/","\\\\");
 String defCollation = ElementParameterParser.getValue(node, "__COLLATION__");
+String actionOnFile = ElementParameterParser.getValue(node, "__ACTION_ON_FILE__");
 
 %> 
 int nb_line_<%=cid %> = 0;
+
+<% if(actionOnFile.equalsIgnoreCase("OVERWRITE") ){  //Delete file before opening 
+	%>
+	try {
+		java.io.File file = new java.io.File( <%=outputFile %>);
+		file.delete();
+	} catch (Exception e) {
+		throw new Exception("File path not valid",e);
+	}
+<%}%>
 
  // TODO: exception handling
  com.tableausoftware.DataExtract.Extract extract_<%=cid %> = new com.tableausoftware.DataExtract.Extract( <%=outputFile %> );
@@ -37,6 +48,12 @@ int nb_line_<%=cid %> = 0;
   for (int i = 0; i < columns.size(); i++) 
   {
    IMetadataColumn column = columns.get(i);
+
+ if ( column.getTalendType().equalsIgnoreCase("id_BigDecimal") ) {
+	%>  
+	tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.DOUBLE);
+<%
+ } else {
    JavaType javaType = JavaTypesManager.getJavaTypeFromId(column.getTalendType());
 
    if ( javaType == JavaTypesManager.STRING) {
@@ -58,10 +75,29 @@ int nb_line_<%=cid %> = 0;
 	   tableDef<%=cid %>.addColumn( "<%= column.getLabel()%>",com.tableausoftware.DataExtract.Type.UNICODE_STRING);
 <%
    } // if javatype
-
   }
+ }
 %>
 
-com.tableausoftware.DataExtract.Table table<%=cid %> = extract_<%=cid %>.addTable("Extract", tableDef<%=cid %>);
+com.tableausoftware.DataExtract.Table table<%=cid %> = null;
+
+try {
+<% if(actionOnFile.equalsIgnoreCase("APPEND") ){  //Delete file before opening 
+	%>
+
+ 		if (!extract_<%=cid %>.hasTable("Extract")) {
+                // Table does not exist; create it
+                table<%=cid %> = extract_<%=cid %>.addTable("Extract", tableDef<%=cid %>);
+            }
+            else {
+                // Open an existing table to add more rows
+                table<%=cid %> = extract_<%=cid %>.openTable("Extract");
+            }
+<%} else { %>
+	table<%=cid %> = extract_<%=cid %>.addTable("Extract", tableDef<%=cid %>);
+<%}%>
+} catch (Exception e) {
+	throw new Exception("Failed to open/append TDE.",e);
+}
             
 com.tableausoftware.DataExtract.Row row<%=cid %> = new com.tableausoftware.DataExtract.Row(tableDef<%=cid %>);
